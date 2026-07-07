@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+streamlit
+opencv-python
+mediapipe
+deepface
+ultralytics
+onnxruntime
+sqlalchemy
+alembic
+pydantic
+pyyaml
+mlflow
