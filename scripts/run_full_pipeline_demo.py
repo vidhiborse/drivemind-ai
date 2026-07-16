@@ -13,6 +13,8 @@ a single Face Landmarker instance across modules.
 
 import sys
 sys.path.insert(0, "src")
+from drivemind.database.models import init_db, get_session
+from drivemind.database.repositories.decision_repository import DecisionRepository
 
 import cv2
 
@@ -40,6 +42,12 @@ for module in [face_detector, eye_detector, yawn_detector,
     module.load()
 
 aggregator = FeatureAggregator()
+# --- Database setup ---
+engine = init_db()
+db_session = get_session(engine)
+repo = DecisionRepository(db_session)
+trip_id = repo.create_trip()
+print(f"Trip started. Trip ID: {trip_id}")
 decision_engine = DecisionEngine()
 
 print("All modules loaded. Starting webcam...")
@@ -72,6 +80,7 @@ while True:
 
     state = aggregator.update(packets)
     decision = decision_engine.decide(state)
+    repo.log_decision(trip_id, decision, state)
 
     risk = decision["risk_level"]
     color = RISK_COLORS.get(risk, (255, 255, 255))
@@ -91,5 +100,7 @@ while True:
         break
 
 cap.release()
+repo.end_trip(trip_id)
+print(f"Trip {trip_id} ended and logged to database.")
 cv2.destroyAllWindows()
 print("Session ended.")
