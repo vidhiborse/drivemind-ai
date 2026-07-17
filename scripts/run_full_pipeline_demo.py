@@ -28,6 +28,9 @@ from drivemind.perception.seatbelt.seatbelt_detector import SeatbeltDetector
 from drivemind.cognition.decision_engine.feature_aggregator import FeatureAggregator
 from drivemind.cognition.decision_engine.decision_engine import DecisionEngine
 
+from drivemind.database.repositories.alert_repository import AlertRepository
+from drivemind.action.alert_engine.alert_engine import AlertEngine
+
 print("Loading all perception modules... this may take a moment.")
 
 face_detector = FaceDetector()
@@ -46,7 +49,9 @@ aggregator = FeatureAggregator()
 engine = init_db()
 db_session = get_session(engine)
 repo = DecisionRepository(db_session)
+alert_repo = AlertRepository(db_session)
 trip_id = repo.create_trip()
+alert_engine = AlertEngine(alert_repo, trip_id)
 print(f"Trip started. Trip ID: {trip_id}")
 decision_engine = DecisionEngine()
 
@@ -81,6 +86,9 @@ while True:
     state = aggregator.update(packets)
     decision = decision_engine.decide(state)
     repo.log_decision(trip_id, decision, state)
+    alert_result = alert_engine.process_decision(decision)
+    if alert_result:
+        print(f"[ALERT - {alert_result['severity']}] {alert_result['message']}")
 
     risk = decision["risk_level"]
     color = RISK_COLORS.get(risk, (255, 255, 255))

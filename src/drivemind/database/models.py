@@ -31,6 +31,15 @@ class DecisionLog(Base):
     reasons = Column(JSON, nullable=False)
     raw_state = Column(JSON, nullable=False)  # full aggregated feature state
 
+class AlertLog(Base):
+    __tablename__ = "alerts"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    trip_id = Column(Integer, nullable=False)
+    timestamp = Column(Float, nullable=False)
+    alert_type = Column(String, nullable=False)
+    severity = Column(String, nullable=False)
+    message = Column(String, nullable=False)
 
 def get_engine(db_url: str = "sqlite:///drivemind.db"):
     return create_engine(db_url, echo=False)
