@@ -26,11 +26,11 @@ DriveMind AI runs a live camera pipeline that:
 ## Architecture
 
 Camera Frame
-→ Perception Layer (Face, Eyes, Mouth, Head Pose, Objects, Seatbelt, Lanes)
-→ Feature Aggregator (merges all module outputs into one state snapshot)
-→ Decision Engine (rule-based risk fusion — ML upgrade planned)
-→ Alert Engine (cooldown-aware alerting, audio for critical risk)
-→ Database (SQLite — decisions + alerts persisted per trip)
+&nbsp;&nbsp;&nbsp;→ Perception Layer (Face, Eyes, Mouth, Head Pose, Objects, Seatbelt, Lanes)
+&nbsp;&nbsp;&nbsp;→ Feature Aggregator (merges all module outputs into one state snapshot)
+&nbsp;&nbsp;&nbsp;→ Decision Engine (rule-based risk fusion — ML upgrade planned)
+&nbsp;&nbsp;&nbsp;→ Alert Engine (cooldown-aware alerting, audio for critical risk)
+&nbsp;&nbsp;&nbsp;→ Database (SQLite — decisions + alerts persisted per trip)
 
 Every perception module implements a shared `Detector` interface (see `src/drivemind/common/interfaces.py`), so any model can be swapped (e.g., YOLOv8 → YOLOv11, or a rule-based seatbelt check → a trained classifier) without touching the rest of the system.
 
@@ -49,12 +49,12 @@ Every perception module implements a shared `Detector` interface (see `src/drive
 
 This is an actively developed, phased build. Current state:
 
-- ✅ **Phase 0** — Project scaffold, config system, core interfaces
-- ✅ **Phase 1 (partial)** — Face Detection, Eye State (EAR), Yawning (MAR), Head Pose, Distraction (YOLO), Seatbelt (heuristic placeholder), Lane Detection
-- ✅ **Phase 4 (partial)** — Feature Aggregator, rule-based Decision Engine, Alert Engine, database logging
-- ⏳ Emotion Detection, Face Recognition, Vehicle/Pedestrian Detection, Weather Detection — in progress
-- ⏳ ML-based Risk Engine and Fatigue Predictor — planned once sufficient logged trip data is available
-- ⏳ FastAPI backend, Streamlit dashboard, MLOps (MLflow/ONNX/TensorRT), Docker deployment, edge optimization — planned
+- Done — Phase 0: Project scaffold, config system, core interfaces
+- Done — Phase 1 (partial): Face Detection, Eye State (EAR), Yawning (MAR), Head Pose, Distraction (YOLO), Seatbelt (heuristic placeholder), Lane Detection
+- Done — Phase 4 (partial): Feature Aggregator, rule-based Decision Engine, Alert Engine, database logging
+- In progress — Emotion Detection, Face Recognition, Vehicle/Pedestrian Detection, Weather Detection
+- Planned — ML-based Risk Engine and Fatigue Predictor, once sufficient logged trip data is available
+- Planned — FastAPI backend, Streamlit dashboard, MLOps (MLflow/ONNX/TensorRT), Docker deployment, edge optimization
 
 ## Known Limitations (Documented Intentionally)
 
@@ -64,39 +64,41 @@ This is an actively developed, phased build. Current state:
 
 ## Running It Locally
 
-```bash
-# 1. Clone and enter the repo
-git clone https://github.com/vidhiborse/drivemind-ai.git
-cd drivemind-ai
+Clone and enter the repo:
 
-# 2. Create and activate a virtual environment
-python -m venv .venv
-.venv\Scripts\Activate.ps1        # Windows PowerShell
+    git clone https://github.com/vidhiborse/drivemind-ai.git
+    cd drivemind-ai
 
-# 3. Install dependencies
-pip install -r requirements/base.txt
+Create and activate a virtual environment (Windows PowerShell):
 
-# 4. Run the full integrated pipeline demo (webcam required)
-python scripts/run_full_pipeline_demo.py
-```
+    python -m venv .venv
+    .venv\Scripts\Activate.ps1
+
+Install dependencies:
+
+    pip install -r requirements/base.txt
+
+Run the full integrated pipeline demo (webcam required):
+
+    python scripts/run_full_pipeline_demo.py
 
 Individual modules can also be tested standalone via the other scripts in `scripts/` (e.g. `test_face_detector.py`, `test_eye_state.py`, `test_yawn_detector.py`, etc.).
 
 ## Project Structure
 
-drivemind-ai/
-├── configs/                  # YAML configuration (base + environment overrides)
-├── src/drivemind/
-│   ├── common/                # Shared interfaces, config loader
-│   ├── perception/             # Face, eyes, mouth, head_pose, distraction, seatbelt, road
-│   ├── cognition/               # Feature Aggregator, Decision Engine
-│   ├── action/                  # Alert Engine
-│   └── database/                 # SQLAlchemy models + repositories
-├── scripts/                  # Standalone test scripts + full pipeline demo
-├── models/                   # Downloaded model weights (gitignored except small .tflite files)
-├── data/                     # Test video/data files
-├── docs/                     # Architecture documentation
-└── requirements/              # Dependency lists
+    drivemind-ai/
+    ├── configs/              YAML configuration (base + environment overrides)
+    ├── src/drivemind/
+    │   ├── common/           Shared interfaces, config loader
+    │   ├── perception/       Face, eyes, mouth, head_pose, distraction, seatbelt, road
+    │   ├── cognition/        Feature Aggregator, Decision Engine
+    │   ├── action/           Alert Engine
+    │   └── database/         SQLAlchemy models + repositories
+    ├── scripts/              Standalone test scripts + full pipeline demo
+    ├── models/               Downloaded model weights (gitignored except small .tflite files)
+    ├── data/                 Test video/data files
+    ├── docs/                 Architecture documentation
+    └── requirements/         Dependency lists
 
 ## Why This Project
 
