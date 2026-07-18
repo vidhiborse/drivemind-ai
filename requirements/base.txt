@@ -1,7 +1,7 @@
 fastapi
 uvicorn[standard]
 streamlit
-opencv-python
+opencv-contrib-python==4.10.0.84
 mediapipe
 deepface
 ultralytics
