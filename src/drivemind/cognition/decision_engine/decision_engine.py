@@ -75,10 +75,23 @@ class DecisionEngine:
             "seatbelt_detected": seatbelt.get("seatbelt_detected", False),
         }
 
+    def _check_emotion(self, state: Dict[str, Any]) -> Dict[str, Any]:
+        emotion_data = state.get("emotion_detector", {})
+        dominant_emotion = emotion_data.get("dominant_emotion")
+
+        concerning_emotions = {"angry", "fear"}
+        emotion_concern = dominant_emotion in concerning_emotions
+
+        return {
+            "dominant_emotion": dominant_emotion,
+            "emotion_concern": emotion_concern,
+        }
+    
     def decide(self, state: Dict[str, Any]) -> Dict[str, Any]:
         drowsiness = self._check_drowsiness(state)
         distraction = self._check_distraction(state)
         compliance = self._check_compliance(state)
+        emotion = self._check_emotion(state)
 
         reasons = []
         risk_level = "LOW"
@@ -103,6 +116,10 @@ class DecisionEngine:
             reasons.append("Seatbelt not detected (heuristic)")
             risk_level = "MEDIUM" if risk_level == "LOW" else risk_level
 
+        if emotion["emotion_concern"]:
+            reasons.append(f"Concerning emotional state detected: {emotion['dominant_emotion']}")
+            risk_level = "MEDIUM" if risk_level == "LOW" else risk_level
+
         if not reasons:
             reasons.append("No risk factors detected")
 
@@ -113,4 +130,5 @@ class DecisionEngine:
             "drowsiness": drowsiness,
             "distraction": distraction,
             "compliance": compliance,
+            "emotion": emotion,
         }

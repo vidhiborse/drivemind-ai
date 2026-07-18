@@ -51,7 +51,7 @@ class EmotionDetector(Detector):
             result = analysis[0] if isinstance(analysis, list) else analysis
 
             dominant_emotion = result["dominant_emotion"]
-            emotion_scores = {k: round(v, 1) for k, v in result["emotion"].items()}
+            emotion_scores = {k: round(float(v), 1) for k, v in result["emotion"].items()}
 
             self._last_result = {
                 "emotion_detected": True,

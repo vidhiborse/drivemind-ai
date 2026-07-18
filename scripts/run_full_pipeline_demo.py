@@ -31,6 +31,8 @@ from drivemind.cognition.decision_engine.decision_engine import DecisionEngine
 from drivemind.database.repositories.alert_repository import AlertRepository
 from drivemind.action.alert_engine.alert_engine import AlertEngine
 
+from drivemind.perception.emotion.emotion_detector import EmotionDetector
+
 print("Loading all perception modules... this may take a moment.")
 
 face_detector = FaceDetector()
@@ -39,10 +41,14 @@ yawn_detector = YawnDetector()
 head_pose_detector = HeadPoseEstimator()
 distraction_detector = DistractionDetector()
 seatbelt_detector = SeatbeltDetector()
+emotion_detector = EmotionDetector()
+
 
 for module in [face_detector, eye_detector, yawn_detector,
-               head_pose_detector, distraction_detector, seatbelt_detector]:
+               head_pose_detector, distraction_detector, seatbelt_detector,
+               emotion_detector]:
     module.load()
+
 
 aggregator = FeatureAggregator()
 # --- Database setup ---
@@ -81,6 +87,7 @@ while True:
         head_pose_detector.process(frame),
         distraction_detector.process(frame),
         seatbelt_detector.process(frame),
+        emotion_detector.process(frame),
     ]
 
     state = aggregator.update(packets)
