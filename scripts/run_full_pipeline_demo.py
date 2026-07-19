@@ -33,6 +33,8 @@ from drivemind.action.alert_engine.alert_engine import AlertEngine
 
 from drivemind.perception.emotion.emotion_detector import EmotionDetector
 
+from drivemind.cognition.fatigue_predictor.fatigue_predictor import FatiguePredictor
+
 print("Loading all perception modules... this may take a moment.")
 
 face_detector = FaceDetector()
@@ -60,6 +62,8 @@ trip_id = repo.create_trip()
 alert_engine = AlertEngine(alert_repo, trip_id)
 print(f"Trip started. Trip ID: {trip_id}")
 decision_engine = DecisionEngine()
+fatigue_predictor = FatiguePredictor()
+fatigue_predictor.load()
 
 print("All modules loaded. Starting webcam...")
 
@@ -92,6 +96,13 @@ while True:
 
     state = aggregator.update(packets)
     decision = decision_engine.decide(state)
+    fatigue_input = {
+        "timestamp": state.get("timestamp"),
+        "avg_ear": state.get("eye_state_detector", {}).get("avg_ear", 0.3),
+        "mar": state.get("yawn_detector", {}).get("mar", 0.2),
+        "yawn_count_2min": state.get("yawn_detector", {}).get("yawn_count_last_2min", 0),
+    }
+    fatigue_result = fatigue_predictor.predict(fatigue_input)
     repo.log_decision(trip_id, decision, state)
     alert_result = alert_engine.process_decision(decision)
     if alert_result:
