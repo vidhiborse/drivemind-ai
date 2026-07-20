@@ -86,12 +86,24 @@ class DecisionEngine:
             "dominant_emotion": dominant_emotion,
             "emotion_concern": emotion_concern,
         }
+    def _check_driver_identity(self, state: Dict[str, Any]) -> Dict[str, Any]:
+        recognition_data = state.get("face_recognizer", {})
+        driver_identified = recognition_data.get("driver_identified", False)
+        is_known_driver = recognition_data.get("is_known_driver", False)
+        driver_name = recognition_data.get("driver_name")
+
+        return {
+            "driver_identified": driver_identified,
+            "is_known_driver": is_known_driver,
+            "driver_name": driver_name,
+        }
     
     def decide(self, state: Dict[str, Any]) -> Dict[str, Any]:
         drowsiness = self._check_drowsiness(state)
         distraction = self._check_distraction(state)
         compliance = self._check_compliance(state)
         emotion = self._check_emotion(state)
+        identity = self._check_driver_identity(state)
 
         reasons = []
         risk_level = "LOW"
@@ -120,6 +132,10 @@ class DecisionEngine:
             reasons.append(f"Concerning emotional state detected: {emotion['dominant_emotion']}")
             risk_level = "MEDIUM" if risk_level == "LOW" else risk_level
 
+        if identity["driver_identified"] and not identity["is_known_driver"]:
+            reasons.append("Unknown/unregistered driver detected")
+            risk_level = "MEDIUM" if risk_level == "LOW" else risk_level
+
         if not reasons:
             reasons.append("No risk factors detected")
 
@@ -131,4 +147,5 @@ class DecisionEngine:
             "distraction": distraction,
             "compliance": compliance,
             "emotion": emotion,
+            "identity": identity,
         }

@@ -62,7 +62,7 @@ class FaceRecognizer(Detector):
 
                 driver_name = os.path.splitext(os.path.basename(identity_path))[0]
                 is_known = distance <= DISTANCE_THRESHOLD
-
+               
                 self._last_result = {
                     "driver_identified": True,
                     "driver_name": driver_name if is_known else "unknown",

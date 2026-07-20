@@ -35,6 +35,9 @@ from drivemind.perception.emotion.emotion_detector import EmotionDetector
 
 from drivemind.cognition.fatigue_predictor.fatigue_predictor import FatiguePredictor
 
+from drivemind.perception.face.face_recognizer import FaceRecognizer
+
+
 print("Loading all perception modules... this may take a moment.")
 
 face_detector = FaceDetector()
@@ -44,11 +47,12 @@ head_pose_detector = HeadPoseEstimator()
 distraction_detector = DistractionDetector()
 seatbelt_detector = SeatbeltDetector()
 emotion_detector = EmotionDetector()
+face_recognizer = FaceRecognizer()
 
 
 for module in [face_detector, eye_detector, yawn_detector,
                head_pose_detector, distraction_detector, seatbelt_detector,
-               emotion_detector]:
+               emotion_detector, face_recognizer]:
     module.load()
 
 
@@ -92,6 +96,7 @@ while True:
         distraction_detector.process(frame),
         seatbelt_detector.process(frame),
         emotion_detector.process(frame),
+        face_recognizer.process(frame),
     ]
 
     state = aggregator.update(packets)
@@ -119,7 +124,11 @@ while True:
         cv2.putText(frame, f"- {reason}", (10, y_offset),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
         y_offset += 25
-
+    if fatigue_result.get("fatigue_probability_10min") is not None:
+        fatigue_text = f"Fatigue (10min): {int(fatigue_result['fatigue_probability_10min']*100)}% ({fatigue_result['trend']})"
+        cv2.putText(frame, fatigue_text, (10, y_offset + 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 165, 0), 1)
+        
     cv2.imshow("DriveMind AI - Full Pipeline Demo", frame)
 
     if cv2.waitKey(1) & 0xFF == ord("q"):
