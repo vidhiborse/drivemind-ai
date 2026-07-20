@@ -13,3 +13,6 @@ mlruns/
 .vscode/
 .idea/
 models/*.tflite
+data/driver_profiles/*.jpg
+data/driver_profiles/*.png
+data/driver_profiles/ds_model_*.pkl
