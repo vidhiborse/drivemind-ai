@@ -12,6 +12,8 @@ from fastapi import FastAPI
 
 from drivemind.api.routers import trips_router
 
+from drivemind.api.routers import trips_router, session_router
+
 app = FastAPI(
     title="DriveMind AI API",
     description="Intelligent Driver Safety, Risk Prediction & Driver Intelligence Platform",
@@ -19,6 +21,7 @@ app = FastAPI(
 )
 
 app.include_router(trips_router.router)
+app.include_router(session_router.router)
 
 
 @app.get("/health", tags=["system"])
@@ -27,6 +30,6 @@ def health_check():
     return {"status": "ok", "service": "DriveMind AI API"}
 
 
-@app.get("/", tags=["system"])
+@app.get("/", tags=["system"])       
 def root():
     return {"message": "DriveMind AI API is running. Visit /docs for API documentation."}
