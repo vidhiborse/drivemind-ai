@@ -2,7 +2,7 @@
 
 **Intelligent Driver Safety, Risk Prediction & Autonomous Driver Intelligence Platform**
 
-DriveMind AI is a modular, production-oriented AI system that monitors driver behavior and road conditions in real time using computer vision, then fuses those signals into a live, ML-driven risk assessment and intelligent alerting system.
+DriveMind AI is a modular, production-oriented AI system that monitors driver behavior and road conditions in real time using computer vision, then fuses those signals into a live, ML-driven risk assessment and intelligent alerting system — exposed through a REST API and a live dashboard.
 
 Built as a portfolio-grade demonstration of computer vision, AI systems design, and production software engineering practices — not a single-script demo.
 
@@ -13,7 +13,7 @@ Built as a portfolio-grade demonstration of computer vision, AI systems design, 
 DriveMind AI runs a live camera pipeline that:
 
 - Detects driver presence and tracks facial landmarks
-- **Recognizes the registered driver by identity (or flags an unrecognized/unregistered driver)** using DeepFace-based face recognition
+- Recognizes the registered driver by identity (or flags an unrecognized/unregistered driver) using DeepFace-based face recognition
 - Computes Eye Aspect Ratio (EAR) to detect eye closure / drowsiness
 - Computes Mouth Aspect Ratio (MAR) to detect yawning and fatigue buildup
 - Estimates head pose (yaw/pitch/roll) to detect distraction (looking away from the road)
@@ -26,6 +26,8 @@ DriveMind AI runs a live camera pipeline that:
 - Estimates a rolling **fatigue trend / probability** over the next 10 minutes from recent EAR/MAR/yawn history
 - Triggers cooldown-aware alerts (with audio for critical risk) so the driver isn't spammed
 - Logs every decision and alert to a database — this same logged data is what trained the ML Risk Engine
+- **Exposes all of this through a FastAPI backend** — trip history, risk/alert history, and live session start/stop/status control, fully documented via Swagger UI
+- **Visualizes it live in a Streamlit dashboard** — start/stop a session, watch risk/driver/fatigue update in real time, browse trip history, and chart risk over the course of a trip
 
 ## Architecture
 
@@ -36,8 +38,10 @@ Camera Frame
 &nbsp;&nbsp;&nbsp;→ Fatigue Predictor (rolling-window trend estimator — LSTM upgrade planned once long continuous trip logs exist)
 &nbsp;&nbsp;&nbsp;→ Alert Engine (cooldown-aware alerting, audio for critical risk)
 &nbsp;&nbsp;&nbsp;→ Database (SQLite — decisions + alerts persisted per trip; this log is the training data source for the ML models)
+&nbsp;&nbsp;&nbsp;→ **FastAPI Backend** (REST endpoints for trips/decisions/alerts, plus live session start/stop/status control running the pipeline headless in a background thread)
+&nbsp;&nbsp;&nbsp;→ **Streamlit Dashboard** (consumes the API only — live status, trip history table, risk history chart)
 
-Every perception module implements a shared `Detector` interface (see `src/drivemind/common/interfaces.py`), and ML predictors implement a shared `Predictor` interface, so any model can be swapped (e.g., the rule-based Decision Engine → the trained LightGBM Risk Engine, or the trend-based Fatigue Predictor → a future LSTM) without touching the rest of the system.
+Every perception module implements a shared `Detector` interface (see `src/drivemind/common/interfaces.py`), and ML predictors implement a shared `Predictor` interface, so any model can be swapped without touching the rest of the system. The dashboard never talks to the database or pipeline directly — only through the API — so the frontend could be replaced (e.g., with React) without touching backend logic.
 
 ## Tech Stack
 
@@ -50,6 +54,8 @@ Every perception module implements a shared `Detector` interface (see `src/drive
 | Computer vision | OpenCV (Canny edges, Hough Transform for lanes/seatbelt) |
 | ML Risk Engine | LightGBM (gradient-boosted classifier) |
 | Explainability | SHAP (TreeExplainer) |
+| Backend API | FastAPI + Uvicorn |
+| Dashboard | Streamlit |
 | Database / ORM | SQLite + SQLAlchemy (Repository pattern) |
 | Config management | YAML-based, environment-layered |
 | Language | Python 3.10 |
@@ -60,22 +66,25 @@ This is an actively developed, phased build. Current state:
 
 - Done — Phase 0: Project scaffold, config system, core interfaces
 - Done — Phase 1: Face Detection, Eye State (EAR), Yawning (MAR), Head Pose, Distraction (YOLO), Seatbelt (heuristic placeholder), Lane Detection, Emotion Detection
-- Done — Phase 2 (partial): Face Recognition + driver identity check (enrollment via `scripts/enroll_driver.py`), integrated into the Decision Engine's risk logic
+- Done — Phase 2 (partial): Face Recognition + driver identity check, integrated into the Decision Engine's risk logic
 - Done — Phase 3 (partial): Vehicle/Pedestrian Detection with monocular Time-To-Collision (TTC) estimation
 - Done — Phase 4: Feature Aggregator, rule-based Decision Engine, Alert Engine, database logging
-- Done — Phase 5 (partial): **ML-based Risk Engine (LightGBM) trained on logged decision data, with SHAP explainability**; rolling-window Fatigue Predictor (trend-based placeholder for a future LSTM)
+- Done — Phase 5 (partial): ML-based Risk Engine (LightGBM) trained on logged decision data with SHAP explainability; rolling-window Fatigue Predictor (trend-based placeholder for a future LSTM)
+- Done — Phase 6 (partial): **FastAPI backend** (trip/decision/alert read endpoints + live session start/stop/status control) and **Streamlit dashboard** (live status, trip history, risk charts)
 - In progress — Weather Detection, Digital Twin
-- Planned — Full LSTM-based Fatigue Predictor (needs long, continuous multi-driver trip logs)
-- Planned — FastAPI backend, Streamlit dashboard, MLOps (MLflow/ONNX/TensorRT), Docker deployment, edge optimization
+- Planned — Full LSTM-based Fatigue Predictor (needs long, continuous multi-driver trip logs), AI Copilot conversational assistant, Post-Trip AI Report generator
+- Planned — MLOps (MLflow/ONNX/TensorRT), Docker deployment, edge optimization
 
 ## Known Limitations (Documented Intentionally)
 
 - **Seatbelt detection** is currently a rule-based heuristic (edge + line detection), not a trained model. Seatbelt is not a standard COCO class, so a custom-labeled dataset and training pass is planned for the MLOps phase.
 - **Head pose roll angle** has a known axis-convention discrepancy in the current `solvePnP` implementation. Yaw and pitch (used for distraction classification) are verified accurate; roll is not currently used in decision logic.
 - **Vehicle tracking for TTC** uses a simplified centroid-distance matcher across frames, not full multi-object tracking (e.g., ByteTrack). This works for the current single-camera test setup but won't handle occlusion or crowded scenes robustly — a planned upgrade.
-- **Face recognition re-scans the enrolled-profiles folder on every recognition call** (via `DeepFace.find()`), which is fine for a handful of drivers but would need a proper vector index (e.g., FAISS) at fleet scale — noted as a future optimization, not needed at the current project scale.
+- **Face recognition re-scans the enrolled-profiles folder on every recognition call** (via `DeepFace.find()`), which is fine for a handful of drivers but would need a proper vector index (e.g., FAISS) at fleet scale.
 - **The ML Risk Engine is trained on labels generated by the rule-based Decision Engine itself**, from a single driver's session data. This means it currently reproduces the rule-based logic rather than discovering genuinely new patterns, and the CRITICAL risk class has very few training samples (16, out of ~2100 total) — both are expected at this stage and would require multi-driver, longer-duration data collection to move past.
-- **The Fatigue Predictor is a rolling-window trend estimator, not a trained LSTM.** LSTMs need long, continuous sequences (30–60+ minute real trips); the current data is short test clips. This is documented as the planned Phase 7 upgrade path, not a hidden shortcut.
+- **The Fatigue Predictor is a rolling-window trend estimator, not a trained LSTM.** LSTMs need long, continuous sequences (30–60+ minute real trips); the current data is short test clips. This is documented as the planned upgrade path, not a hidden shortcut.
+- **The live session runner holds pipeline sessions in an in-memory dictionary within a single process** (see `src/drivemind/api/pipeline_runner.py`). This is fine for local/single-user use, but a multi-instance or production deployment would need a shared session store (e.g., Redis) instead.
+- **The dashboard polls the API every 2 seconds via a sleep-and-rerun loop**, which is simple and effective locally but not how a production real-time UI would be built — a WebSocket-based live feed (as sketched in the original architecture doc) is the intended upgrade path.
 
 ## Privacy Note
 
@@ -101,11 +110,25 @@ Enroll yourself as a registered driver (one-time, required for face recognition)
 
     python scripts/enroll_driver.py
 
-Run the full integrated pipeline demo (webcam required):
+**Option 1 — Run the standalone webcam demo (shows a live OpenCV window):**
 
     python scripts/run_full_pipeline_demo.py
 
-Individual modules can also be tested standalone via the other scripts in `scripts/` (e.g. `test_face_detector.py`, `test_face_recognizer.py`, `test_eye_state.py`, `test_yawn_detector.py`, `test_vehicle_detector.py`, `test_emotion_detector.py`, etc.).
+**Option 2 — Run the full API + Dashboard stack (two terminals required):**
+
+Terminal 1 — start the backend:
+
+    python -m uvicorn drivemind.api.main:app --reload --reload-dir src --app-dir src
+
+Terminal 2 — start the dashboard:
+
+    streamlit run src/drivemind/dashboard/app.py
+
+Then open the dashboard (auto-opens at `http://localhost:8501`) and click **Start Session** — this triggers a headless pipeline session on the backend (no OpenCV window; the webcam runs in the background) and the dashboard shows live risk/driver/fatigue updates.
+
+API documentation (Swagger UI) is available at `http://127.0.0.1:8000/docs` whenever the backend is running.
+
+Individual perception modules can also be tested standalone via the other scripts in `scripts/` (e.g. `test_face_detector.py`, `test_face_recognizer.py`, `test_eye_state.py`, `test_yawn_detector.py`, `test_vehicle_detector.py`, `test_emotion_detector.py`, etc.).
 
 To retrain the ML Risk Engine on freshly logged data:
 
@@ -122,7 +145,9 @@ To retrain the ML Risk Engine on freshly logged data:
     │   ├── perception/       Face (detection + recognition), eyes, mouth, head_pose, emotion, distraction, seatbelt, road (lanes + vehicles/TTC)
     │   ├── cognition/        Feature Aggregator, Decision Engine, Fatigue Predictor
     │   ├── action/           Alert Engine
-    │   └── database/         SQLAlchemy models + repositories
+    │   ├── database/         SQLAlchemy models + repositories
+    │   ├── api/              FastAPI app, routers (trips, session), schemas, headless pipeline runner
+    │   └── dashboard/        Streamlit app (consumes the API only)
     ├── scripts/               Standalone test scripts, driver enrollment, full pipeline demo, ML training/explainability scripts
     ├── models/                Downloaded model weights + trained risk_model.pkl (large binary weights gitignored)
     ├── data/                  Test video files, extracted training CSVs, local-only driver profiles (gitignored)
@@ -134,11 +159,12 @@ To retrain the ML Risk Engine on freshly logged data:
 This project was built to demonstrate production-level AI engineering practices, not just model usage:
 
 - Modular architecture with swappable components (Strategy pattern via `Detector`/`Predictor` interfaces)
-- Clean separation between perception, cognition, and action layers
+- Clean separation between perception, cognition, action, API, and presentation layers
 - Repository pattern for database access
 - Explicit, documented limitations rather than hidden shortcuts
 - A rule-based-first approach to ML systems: the rule-based Decision Engine was built and run first specifically to generate the labeled training data the ML Risk Engine was then trained on — rather than guessing at a model with no data
 - Explainability treated as a first-class requirement (SHAP integration), not an afterthought
+- A real API layer decoupling the AI pipeline from any specific frontend — the dashboard is a client, not part of the core system
 - Privacy-conscious handling of biometric data: enrolled driver photos and embeddings are kept local-only and excluded from version control
 
 ---
